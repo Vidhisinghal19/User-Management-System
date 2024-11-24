@@ -1,0 +1,140 @@
+<!-- app/templates/employee_portal.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/employee_portal.css') }}">
+    <style>
+        .operation-section {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Employee Portal</h1>
+
+        <!-- Login Form -->
+        <div id="loginSection">
+            <h2>Login</h2>
+            <input type="text" id="emailIdLogin" placeholder="Email" required>
+            <input type="password" id="passcodeLogin" placeholder="Passcode" required>
+            <button type="button" onclick="login()">Login</button>
+            <div id="loginMessage"></div>
+        </div>
+
+        <!-- Profile Section (hidden by default) -->
+        <div id="profileSection" style="display: none;">
+            <h2>Your Profile</h2>
+            <div id="profileDetails"></div>
+            <button onclick="showEditSection()">Edit Profile</button>
+        </div>
+
+        <!-- Edit Profile Section -->
+        <div id="editProfileSection" class="operation-section">
+            <h3>Edit Profile</h3>
+            <input type="text" id="editName" placeholder="Name" required>
+            <input type="text" id="editEmail" placeholder="Email" required>
+            <button type="button" onclick="updateProfile()">Update Profile</button>
+            <div id="updateMessage"></div>
+        </div>
+    </div>
+
+    <script>
+        let userId = null;  // Variable to hold the logged-in employee's ID
+
+        // Login function
+        async function login() {
+            const emailId = document.getElementById('emailIdLogin').value;
+            const passcode = document.getElementById('passcodeLogin').value;
+
+            try {
+                const response = await fetch('/employee/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email_id: emailId, passcode: passcode }),  // Correct field name
+                });
+
+                const data = await response.json();
+                if (data.message === 'Login successful') {
+                    userId = data.user_id;  // Corrected field name
+                    document.getElementById('loginSection').style.display = 'none';
+                    document.getElementById('profileSection').style.display = 'block'; // Show profile section
+                    fetchProfile(userId);  // Fetch the profile data
+                } else {
+                    document.getElementById('loginMessage').textContent = data.message;
+                }
+            } catch (error) {
+                document.getElementById('loginMessage').textContent = 'Error during login. Please try again.';
+            }
+        }
+
+        // Fetch employee profile
+        async function fetchProfile(userId) {
+            try {
+                const response = await fetch(`/employee/profile/${userId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                const data = await response.json();
+                if (data.user_id) {  // Corrected field names
+                    document.getElementById('profileDetails').innerHTML = `
+                        <p>ID: ${data.user_id}</p>
+                        <p>Name: ${data.user_name}</p>
+                        <p>Email: ${data.email_id}</p>
+                        <p>Role: ${data.role}</p>
+                    `;
+                } else {
+                    document.getElementById('profileDetails').textContent = data.message;
+                }
+            } catch (error) {
+                document.getElementById('profileDetails').textContent = 'Error fetching profile.';
+            }
+        }
+
+        // Show edit profile section
+        function showEditSection() {
+            const profileDetails = document.getElementById('profileDetails');
+            document.getElementById('editName').value = profileDetails.querySelector('p:nth-child(2)').textContent.split(': ')[1];
+            document.getElementById('editEmail').value = profileDetails.querySelector('p:nth-child(3)').textContent.split(': ')[1];
+            document.getElementById('editProfileSection').style.display = 'block'; // Show edit profile section
+        }
+
+        // Update employee profile
+        async function updateProfile() {
+            const user_name = document.getElementById('editName').value;
+            const email_id = document.getElementById('editEmail').value;
+
+            try {
+                const response = await fetch(`/employee/profile/${userId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ user_name: user_name, email_id: email_id }),  // Correct field names
+                });
+
+                const data = await response.json();
+                document.getElementById('updateMessage').textContent = data.message;
+                if (data.message === 'Profile updated successfully') {
+                    fetchProfile(userId);  // Refresh the profile data
+                }
+            } catch (error) {
+                document.getElementById('updateMessage').textContent = 'Error updating profile.';
+            }
+        }
+    </script>
+</body>
+
+</html>
+

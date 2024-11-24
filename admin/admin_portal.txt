@@ -1,0 +1,248 @@
+<!-- ums/app/templates/admin_portal.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_portal.css') }}">
+    <style>
+        .operation-section {
+            display: none;
+            /* Hide all operation sections by default */
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Admin Portal</h1>
+
+        <!-- Login Form -->
+        <div id="loginSection">
+            <h2>Login</h2>
+            <input type="text" id="emailId" placeholder="Email" required>
+            <input type="password" id="passcode" placeholder="Passcode" required>
+            <button type="button" onclick="login()">Login</button>
+            <div id="loginMessage"></div>
+        </div>
+
+        <!-- Operations Menu (hidden by default) -->
+        <div id="operationsSection" style="display: none;">
+            <h2>Operations Menu</h2>
+            <button onclick="showSection('createRoleSection')">Create Role</button>
+            <button onclick="showSection('createDepartmentSection')">Create Department</button>
+            <button onclick="showSection('createUserSection')">Create User</button>
+            <button onclick="showSection('readUsersSection')">Read Users</button>
+            <button onclick="showSection('updateUserSection')">Update User</button>
+            <button onclick="showSection('deleteUserSection')">Delete User</button>
+        </div>
+
+        <!-- Operation Sections -->
+        <div id="createRoleSection" class="operation-section">
+            <h3>Create Role</h3>
+            <input type="text" id="roleName" placeholder="Role Name" required>
+            <button type="button" onclick="createRole()">Create Role</button>
+        </div>
+
+        <div id="createDepartmentSection" class="operation-section">
+            <h3>Create Department</h3>
+            <input type="text" id="departmentName" placeholder="Department Name" required>
+            <button type="button" onclick="createDepartment()">Create Department</button>
+        </div>
+
+        <div id="createUserSection" class="operation-section">
+            <h3>Create User</h3>
+            <input type="text" id="userName" placeholder="User Name" required>
+            <input type="text" id="roleId" placeholder="Role ID" required>
+            <input type="text" id="deptId" placeholder="Department ID (optional)">
+            <input type="text" id="emailIdUser" placeholder="Email" required>
+            <input type="password" id="passcodeUser" placeholder="Passcode" required>
+            <button type="button" onclick="createUser()">Create User</button>
+        </div>
+
+        <div id="readUsersSection" class="operation-section">
+            <h3>List of Users</h3>
+            <button type="button" onclick="readUsers()">Load Users</button>
+            <table id="userTable" border="1" style="width:100%; margin-top: 20px; text-align: left;">
+                <thead>
+                    <tr>
+                        <th>User ID</th>
+                        <th>Name</th>
+                        <th>Role ID</th>
+                        <th>Department ID</th>
+                        <th>Email</th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody">
+                    <!-- Data will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div id="updateUserSection" class="operation-section">
+            <h3>Update User</h3>
+            <input type="text" id="updateUserId" placeholder="User ID" required>
+            <input type="text" id="updateField"
+                placeholder="Field to Update (e.g., user_name, email_id, passcode, department_id)" required>
+            <input type="text" id="updateValue" placeholder="New Value" required>
+            <button type="button" onclick="updateUser()">Update User</button>
+        </div>
+
+        <div id="deleteUserSection" class="operation-section">
+            <h3>Delete User</h3>
+            <input type="text" id="deleteUserId" placeholder="User ID" required>
+            <button type="button" onclick="deleteUser()">Delete User</button>
+        </div>
+    </div>
+
+    <script>
+        // Login function
+        function login() {
+            const emailId = document.getElementById('emailId').value;
+            const passcode = document.getElementById('passcode').value;
+
+            fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email_id: emailId, passcode: passcode })
+            }).then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('loginSection').style.display = 'none';
+                        document.getElementById('operationsSection').style.display = 'block';
+                    } else {
+                        document.getElementById('loginMessage').innerText = data.message;
+                    }
+                });
+        }
+
+        // Show the appropriate operation section
+        function showSection(sectionId) {
+            // Hide all sections
+            const sections = document.getElementsByClassName('operation-section');
+            for (let section of sections) {
+                section.style.display = 'none';
+            }
+            // Show the selected section
+            document.getElementById(sectionId).style.display = 'block';
+        }
+
+        // Function to send POST request to create a role
+        function createRole() {
+            const roleName = document.getElementById('roleName').value;
+            fetch('/create_role', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role_name: roleName })
+            }).then(response => response.json())
+                .then(data => alert(data.message));
+        }
+
+        // Function to send POST request to create a department
+        function createDepartment() {
+            const departmentName = document.getElementById('departmentName').value;
+            fetch('/create_department', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ department_name: departmentName })
+            }).then(response => response.json())
+                .then(data => alert(data.message));
+        }
+
+        // Function to send POST request to create a user
+        function createUser() {
+            const userName = document.getElementById('userName').value;
+            const roleId = document.getElementById('roleId').value;
+            const deptId = document.getElementById('deptId').value || null;
+            const emailId = document.getElementById('emailIdUser').value;
+            const passcode = document.getElementById('passcodeUser').value;
+
+            fetch('/create_user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_name: userName,
+                    role_id: roleId,
+                    department_id: deptId,
+                    email_id: emailId,
+                    passcode: passcode
+                })
+            }).then(response => response.json())
+                .then(data => alert(data.message));
+        }
+
+        // Function to send GET request to read users
+        // Function to send GET request to read users
+        // Function to send GET request to read users and display them in a table
+        function readUsers() {
+            fetch('/users', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            }).then(response => response.json())
+                .then(users => {
+                    // Get the table body element
+                    const tableBody = document.getElementById('userTableBody');
+                    tableBody.innerHTML = ''; // Clear any existing rows
+
+                    // Loop through each user and create a table row
+                    users.forEach(user => {
+                        const row = document.createElement('tr');
+
+                        // Create cells for each column
+                        const userIdCell = document.createElement('td');
+                        userIdCell.innerText = user.user_id;
+                        row.appendChild(userIdCell);
+
+                        const userNameCell = document.createElement('td');
+                        userNameCell.innerText = user.user_name;
+                        row.appendChild(userNameCell);
+
+                        const roleIdCell = document.createElement('td');
+                        roleIdCell.innerText = user.role_id;
+                        row.appendChild(roleIdCell);
+
+                        const departmentIdCell = document.createElement('td');
+                        departmentIdCell.innerText = user.department_id || 'N/A'; // If no department, show N/A
+                        row.appendChild(departmentIdCell);
+
+                        const emailCell = document.createElement('td');
+                        emailCell.innerText = user.email_id;
+                        row.appendChild(emailCell);
+
+                        // Append the row to the table body
+                        tableBody.appendChild(row);
+                    });
+                });
+        }
+        function updateUser() {
+            const userId = document.getElementById('updateUserId').value;
+            const field = document.getElementById('updateField').value;
+            const value = document.getElementById('updateValue').value;
+
+            fetch(`/update_user/${userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [field]: value })
+            }).then(response => response.json())
+                .then(data => alert(data.message));
+        }
+
+        // Function to send DELETE request to delete a user
+        function deleteUser() {
+            const userId = document.getElementById('deleteUserId').value;
+
+            fetch(`/delete_user/${userId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            }).then(response => response.json())
+                .then(data => alert(data.message));
+        }
+    </script>
+
+</body>
+
+</html>

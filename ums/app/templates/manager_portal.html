@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manager Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/manager_portal.css') }}">
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Manager Portal</h1>
+
+        <!-- Login Form -->
+        <div id="loginSection">
+            <h2>Login</h2>
+            <input type="text" id="managerEmailInput" placeholder="Email" required>
+            <input type="password" id="managerPasscode" placeholder="Passcode" required>
+            <button type="button" onclick="login()">Login</button>
+            <div id="loginMessage" class="error-message"></div>
+        </div>
+
+        <!-- Operations Menu (hidden by default) -->
+        <div id="operationsSection" style="display: none;">
+            <h2>Operations Menu</h2>
+            <input type="hidden" id="managerEmail" value="">
+            <input type="hidden" id="departmentId" value="">
+            <button onclick="showSection('createUserSection')">Create User</button>
+            <button onclick="showSection('readUsersSection')">Read Users</button>
+            <button onclick="showSection('updateUserSection')">Update User</button>
+            <button onclick="showSection('deleteUserSection')">Delete User</button>
+            <button onclick="logout()" style="background-color: red;">Logout</button>
+        </div>
+
+        <!-- Operation Sections -->
+        <div id="createUserSection" class="operation-section" style="display: none;">
+            <h3>Create User</h3>
+            <input type="text" id="userName" placeholder="User Name" required>
+            <input type="email" id="userEmailId" placeholder="Email" required>
+            <input type="password" id="userPasscode" placeholder="Passcode" required>
+            <button type="button" onclick="createUser()">Create User</button>
+            <div id="createUserMessage" class="error-message"></div>
+        </div>
+
+        <div id="readUsersSection" class="operation-section" style="display: none;">
+            <h3>Users in Department</h3>
+            <button type="button" onclick="listUsers()">Show Users</button>
+            <div id="usersList">
+                <table id="usersTable" border="1" style="display:none; width: 100%;margin-top: 20px; text-align: left;">
+                    <thead>
+                        <tr>
+                            <th>User ID</th>
+                            <th>User Name</th>
+                            <th>Email</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div id="noUsersMessage" class="error-message" style="display:none;"></div>
+            </div>
+        </div>
+
+        <div id="updateUserSection" class="operation-section" style="display: none;">
+            <h3>Update User</h3>
+            <input type="number" id="userIdToUpdate" placeholder="User ID" required>
+            <input type="text" id="newUserName" placeholder="New User Name" required>
+            <input type="email" id="newEmailId" placeholder="New Email" required>
+            <input type="password" id="newPasscode" placeholder="New Passcode" required>
+            <button type="button" onclick="updateUser()">Update User</button>
+            <div id="updateUserMessage" class="error-message"></div>
+        </div>
+
+        <div id="deleteUserSection" class="operation-section" style="display: none;">
+            <h3>Delete User</h3>
+            <input type="number" id="userIdToDelete" placeholder="User ID" required>
+            <button type="button" onclick="deleteUser()">Delete User</button>
+            <div id="deleteUserMessage" class="error-message"></div>
+        </div>
+
+    </div>
+
+    <script>
+        function login() {
+            const emailId = document.getElementById('managerEmailInput').value;
+            const passcode = document.getElementById('managerPasscode').value;
+
+            fetch('/manager/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email_id: emailId, passcode: passcode })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('loginSection').style.display = 'none';
+                        document.getElementById('operationsSection').style.display = 'block';
+                        document.getElementById('managerEmail').value = emailId; // Store manager's email
+                        document.getElementById('departmentId').value = data.department_id; // Store department ID
+                        showSection('readUsersSection'); // Show read users section by default
+                    } else {
+                        document.getElementById('loginMessage').innerText = data.error;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('loginMessage').innerText = "Network error. Please try again.";
+                });
+        }
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.operation-section').forEach(section => {
+                section.style.display = 'none';
+            });
+            document.getElementById(sectionId).style.display = 'block';
+        }
+
+        function createUser() {
+            const userName = document.getElementById('userName').value;
+            const emailId = document.getElementById('userEmailId').value;
+            const passcode = document.getElementById('userPasscode').value;
+            const managerEmail = document.getElementById('managerEmail').value;
+            const departmentId = document.getElementById('departmentId').value;
+
+            fetch('/manager/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    user_name: userName,
+                    email_id: emailId,
+                    passcode: passcode,
+                    manager_email: managerEmail,
+                    department_id: departmentId
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('createUserMessage').innerText = data.success ? data.message : data.error;
+                })
+                .catch(error => {
+                    document.getElementById('createUserMessage').innerText = "Network error. Please try again.";
+                });
+        }
+
+        function listUsers() {
+            const departmentId = document.getElementById('departmentId').value;
+
+            fetch(`/manager/users?department_id=${departmentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const usersTable = document.getElementById('usersTable');
+                    const noUsersMessage = document.getElementById('noUsersMessage');
+                    const tbody = usersTable.querySelector('tbody');
+
+                    tbody.innerHTML = ''; // Clear existing rows
+
+                    if (Array.isArray(data) && data.length > 0) {
+                        data.forEach(user => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${user.user_id}</td>
+                                <td>${user.user_name}</td>
+                                <td>${user.email_id}</td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+
+                        usersTable.style.display = 'table'; // Show the table
+                        noUsersMessage.style.display = 'none'; // Hide "no users" message
+                    } else {
+                        usersTable.style.display = 'none'; // Hide the table
+                        noUsersMessage.innerText = "No users found in this department.";
+                        noUsersMessage.style.display = 'block'; // Show "no users" message
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('noUsersMessage').innerText = "Network error. Please try again.";
+                    document.getElementById('noUsersMessage').style.display = 'block';
+                });
+        }
+
+        function updateUser() {
+            const userId = document.getElementById('userIdToUpdate').value;
+            const newUserName = document.getElementById('newUserName').value;
+            const newEmailId = document.getElementById('newEmailId').value;
+            const newPasscode = document.getElementById('newPasscode').value;
+            const departmentId = document.getElementById('departmentId').value; // Get manager's department ID
+
+            fetch(`/manager/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    user_name: newUserName,
+                    email_id: newEmailId,
+                    passcode: newPasscode,
+                    department_id: departmentId // Pass department ID for verification
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('updateUserMessage').innerText = data.success ? data.message : data.error;
+                })
+                .catch(error => {
+                    document.getElementById('updateUserMessage').innerText = "Network error. Please try again.";
+                });
+        }
+
+        function deleteUser() {
+            const userId = document.getElementById('userIdToDelete').value;
+            const departmentId = document.getElementById('departmentId').value;
+
+            fetch(`/manager/users/${userId}?department_id=${departmentId}`, {
+                method: 'DELETE'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('deleteUserMessage').innerText = data.success ? data.message : data.error;
+                })
+                .catch(error => {
+                    document.getElementById('deleteUserMessage').innerText = "Network error. Please try again.";
+                });
+        }
+
+        function logout() {
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('operationsSection').style.display = 'none';
+            document.getElementById('managerEmailInput').value = '';
+            document.getElementById('managerPasscode').value = '';
+            document.getElementById('loginMessage').innerText = '';
+        }
+    </script>
+
+</body>
+
+</html>

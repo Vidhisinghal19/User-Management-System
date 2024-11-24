@@ -1,0 +1,54 @@
+#ums/docker-compose.yml
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: python_flask_app
+    ports:
+      - "5000:5000"  # Flask app will be available at http://localhost:5000
+    volumes:
+      - ./app:/usr/src/app  # Mount the app directory to the container
+    environment:
+      MYSQL_HOST: db
+      MYSQL_USER: vidhi
+      MYSQL_PASSWORD: 1234
+      MYSQL_DATABASE: ums
+    depends_on:
+      - db
+    stdin_open: true  # Keep stdin open for interactive input
+    tty: true         # Allocate a pseudo-TTY for Flask interactive shell if needed
+
+  db:
+    image: mysql:8.0
+    container_name: mysql_db
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: ums
+      MYSQL_USER: vidhi
+      MYSQL_PASSWORD: 1234
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p1234"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 5s
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: 1234
+    ports:
+      - "8080:80"  # phpMyAdmin will be available at http://localhost:8080
+
+volumes:
+  mysql_data:

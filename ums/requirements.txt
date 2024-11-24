@@ -1,0 +1,4 @@
+#ums/requirements.txt
+
+mysql-connector-python
+flask
